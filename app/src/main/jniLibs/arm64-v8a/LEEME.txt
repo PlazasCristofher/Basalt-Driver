@@ -1,0 +1,6 @@
+Pon aqui UN solo archivo, con este nombre exacto:
+  libvulkan_panfrost.so   (el ICD PanVK-kbase original, sin modificar)
+
+El shim (libvulkan_panvk_shim.so) NO se pone a mano: lo compila el workflow desde shim/
+como build limpia (PANVK_SHIM_DIAG=0) y lo copia aqui antes de armar el APK.
+Cada ejecucion del workflow imprime el SHA256 de ambos .so para poder reproducir el APK.

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Basalt Driver</string>
+    <string name="about">Basalt Driver\nDriver Vulkan PanVK-kbase para Panlith Launcher.\nExperimental. Probado en Mali-G68 (Galaxy A16 5G).</string>
+</resources>
