@@ -1,87 +1,63 @@
 # Basalt Driver
 
-An **experimental** Vulkan driver plugin based on **PanVK-kbase** for Android.
+**Experimental** Android Vulkan driver plugin based on **PanVK-kbase**.
 
-Intended for use with **Panlith Launcher** (a fork of Zalith 2 with PanVK support).
+Built to work with **Panlith Launcher** (a Zalith 2 fork with PanVK loading support).  
+Other launchers can use it only if they implement the same load contract.
 
-It may also be of interest to other launchers that implement the same loading contract.
+## What is in the APK
 
-## What's Included in the APK
+| File | Role |
+|------|------|
+| `libvulkan_panfrost.so` | **PanVK-kbase** ICD (Mesa panvk, Mali **kbase** interface) |
+| `libvulkan_panvk_shim.so` | Compatibility layer for LWJGL and Mesa/Zink |
+| Manifest metadata | Registers as a driver plugin (`fclPlugin` / driver name / PanVK flag) |
 
-| File | Function |
+### Why a shim?
 
-|---------|---------|
+The PanVK `.so` is a pure **ICD**. It exports ICD entry points (e.g. `vk_icdGetInstanceProcAddr`), **not** a full loader-style `vkGetInstanceProcAddr` the way system `libvulkan.so` does.
 
-`libvulkan_panfrost.so` | **PanVK-kbase** ICD (PanVK Mesa, kbase/Mali interface) |
+The shim:
 
-`libvulkan_panvk_shim.so` | Compatibility layer for LWJGL and Mesa/Zink |
+1. Loads the ICD (`PANVK_ICD_PATH` or a `.so` next to the shim).
+2. Exports **`vkGetInstanceProcAddr`** and **`vkGetDeviceProcAddr`** (Mesa/Zink resolve these with `dlsym` on the handle).
+3. Forwards calls into the ICD.
+4. Supports the Android surface path needed by the launcher stack.
 
-`AndroidManifest` metadata | Registered as a driver plugin (`fclPlugin` / driver / PanVK brand) |
+Without the shim, Zink often dies before device selection (e.g. missing proc addresses).
 
-### Why the shim
+## Requirements
 
-The PanVK ICD **doesn't** export `vkGetInstanceProcAddr` as a system `libvulkan.so` file. It exports the ICD API (`vk_icdGetInstanceProcAddr`, etc.).
-
-The solution:
-
-1. Load the ICD (`PANVK_ICD_PATH` or the `.so` file along with the shim).
-
-2. Export **`vkGetInstanceProcAddr`** and **`vkGetDeviceProcAddr`** (Zink/Mesa request these with `dlsym` on the handle).
-
-3. Forward calls to the ICD.
-
-4. Participate in the Android surface when needed for the launcher stack.
-
-Without the shim, Zink usually fails before reaching "Vulkan device selected" (`ZINK: could not get process address` or equivalent).
-
-##Requirements
-
-- Launcher with PanVK path (recommended: **Panlith**)
-- **Mali** GPU + accessible **kbase** kernel/userspace (as on devices where PanProbe passes tests)
+- A launcher with PanVK support (**Panlith** recommended)
+- **Mali** GPU + working **kbase** path (devices where PanProbe can pass)
 - arm64-v8a
-- Recent Android version (tested on 16)
-- **Sin Root**
+- Modern Android (tested on 16)
+- **No root**
 
-### Reference Device
+### Reference device
 
-Samsung Galaxy A16 5G (SM-A166M), Exynos 1330, **Mali-G68 MC2**, Android 16.
-PanProbe/in-game usage: PanVK-kbase **RC3** (and load testing with shim v4).
+Samsung Galaxy A16 5G (SM-A166M), Exynos 1330, **Mali-G68 MC2**, Android 16.  
+Validated with PanVK-kbase **RC3** and shim v4 (GIPA + GDPA).
 
-## Installation
+## Install
 
-1. Install **Panlith** (or a Zalith with the PanVK patch).
+1. Install **Panlith** (or another PanVK-aware Zalith build).
+2. Install this **Basalt** APK.
+3. If the plugin does not update, uninstall the old plugin APK and install again (game worlds are separate).
+4. In the launcher, select driver **Basalt / PanVK-kbase**.
+5. Start the game with native **Vulkan** (MC 26.x) or **Zink/Kopper/Ironized** (OpenGL-over-Vulkan).
 
-2. Install this APK (**Basalt**).
+Success check: F3 or game log shows `panvk` / `PanVK-kbase` / `MESA_PANVK`.
 
-3. If Android doesn't update the plugin, uninstall the previous version and reinstall it (do not delete game worlds).
-
-4. In the launcher: **Basalt / PanVK-kbase** driver.
-
-5. Start the game with:
-
-- **Native Vulkan** (MC 26.x), or
-
-- **Zink / Kopper / Ironized** (OpenGL over Vulkan).
-
-Check by pressing F3 or in the game log for something like: `panvk`, `PanVK-kbase`, `MESA_PANVK`.
-
-## Packaging (for those who need to recompile the plugin)
+## Packaging (rebuilders)
 
 - `jniLibs/arm64-v8a/`:
-
-- `libvulkan_panvk_shim.so`
-
-- `libvulkan_panfrost.so` (ICD of [panvk-kbase-android](https://github.com/zenithblue-oss/panvk-kbase-android))
-
-- `extractNativeLibs` / `useLegacyPackaging` according to the plugin template, so that real files exist under `nativeLibraryDir`.
-
+  - `libvulkan_panvk_shim.so`
+  - `libvulkan_panfrost.so` from [panvk-kbase-android](https://github.com/zenithblue-oss/panvk-kbase-android)
+- Enable native lib extraction / legacy packaging so files exist under `nativeLibraryDir`.
 - Example metadata:
 
 ```xml
-<metadata android:name="fclPlugin" android:value="true" />
-<metadata android:name="controller" android:value="PanVK-kbase RC3" />
-<metadata android:name="panvkDriver" android:value="true" />
-
-Many thanks to zenithblue-oss for the Vulkan library; without it, this wouldn't have been possible.
-
- 
+<meta-data android:name="fclPlugin" android:value="true" />
+<meta-data android:name="driver" android:value="PanVK-kbase RC3" />
+<meta-data android:name="panvkDriver" android:value="true" />
