@@ -15,7 +15,7 @@ android {
         versionName = "0.1.0"
 
         // Nombre que muestra Zalith para este driver
-        manifestPlaceholders["driver"] = "Basalt Driver (PanVK-kbase RC3)"
+        manifestPlaceholders["driver"] = "Basalt Driver (PanVK-kbase v26.3.1)"
         ndk { abiFilters += "arm64-v8a" }
     }
 
